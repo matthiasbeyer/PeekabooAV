@@ -5,7 +5,7 @@
 #                                                                             #
 # Peekaboo Extended Email Attachment Behavior Observation Owl                 #
 #                                                                             #
-# scan_file.py                                                                #
+# peekaboo-util.py                                                            #
 ###############################################################################
 #                                                                             #
 # Copyright (C) 2016-2019  science + computing ag                             #
@@ -31,10 +31,57 @@ from os import path, linesep
 from argparse import ArgumentParser
 import socket
 import re
+import logging
+
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+
+
+class PeekabooUtil(object):
+    def __init__(self, socket_file):
+        logger.debug('Initialising PeekabooUtil')
+        self.peekaboo = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        logger.debug('Opening socket %s', socket_file)
+        self.peekaboo.connect(socket_file)
+
+    def send_receive(self, request):
+        logger.debug('Sending request: %s', request)
+
+        self.peekaboo.send(request)
+        print ('Waiting for response...')
+
+        buf = ''
+        while True:
+            data = self.peekaboo.recv(1024)
+            if data:
+                buf += data
+            else:
+                self.peekaboo.close()
+                break
+        return buf
+
+    def scan_file(self, filename):
+        result_regex = re.compile(r'.*wurde als',
+                                  re.MULTILINE + re.DOTALL + re.UNICODE)
+        file_snippets = []
+        for filename in filename:
+            file_snippets.append('{ "full_name": "%s" }' % path.abspath(filename))
+        request = '[ %s ]' % ', '.join(file_snippets)
+
+        buf = self.send_receive(request)
+
+        for result in buf.splitlines():
+            output = result_regex.search(result)
+            if output:
+                if 'bad' in result:
+                    print(result)
+                logger.info(result)
 
 
 def main():
     parser = ArgumentParser()
+    subparsers = parser.add_subparsers(help='commands')
+
     parser.add_argument('-v', '--verbose', action='store_true', required=False,
                         help='List results of all files not only bad ones')
     parser.add_argument('-vv', '--verbose2', action='store_true', required=False,
@@ -43,49 +90,27 @@ def main():
                         help='Output additional diagnostics')
     parser.add_argument('-s', '--socket_file', action='store', required=True,
                         help='Path to Peekaboo\'s socket file')
-    parser.add_argument('-f', '--filename', action='append', required=True,
-                        help='Path to the file to scan. Can be given more '
-                        'than once to scan multiple files.')
+
+    scan_file_parser = subparsers.add_parser('scan_file',
+                                             help='Scan a file and report it')
+    scan_file_parser.add_argument('-f', '--filename', action='append', required=True,
+                                  help='Path to the file to scan. Can be given more '
+                                       'than once to scan multiple files.')
+    scan_file_parser.set_defaults(func=command_scan_file)
+
     args = parser.parse_args()
 
-    result_regex = re.compile(r'.*wurde als',
-                              re.MULTILINE + re.DOTALL + re.UNICODE)
-    peekaboo = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    peekaboo.connect(args.socket_file)
-
-    file_snippets = []
-    for filename in args.filename:
-        file_snippets.append('{ "full_name": "%s" }' % path.abspath(filename))
-    request = '[ %s ]' % ', '.join(file_snippets)
-
-    if args.debug:
-        print ('Sending request: %s' % request)
-
-    peekaboo.send(request)
-    print ('Waiting for response...')
-
+    logger.setLevel(logging.ERROR)
+    if args.verbose:
+        logger.setLevel(logging.INFO)
     if args.verbose2:
-        args.verbose = True
+        logger.setLevel(logging.DEBUG)
 
-    buf = ''
-    while True:
-        data = peekaboo.recv(1024)
-        if data:
-            buf += data
-        else:
-            peekaboo.close()
-            break
+    args.func(args)
 
-    for result in buf.splitlines():
-        output = result_regex.search(result)
-        if output:
-            if 'bad' in result:
-                print(result)
-            elif args.verbose:
-                print(result)
-        elif args.verbose2:
-            print(result)
-
+def command_scan_file(args):
+    util = PeekabooUtil(args.socket_file)
+    util.scan_file(args.filename)
 
 if __name__ == "__main__":
     main()
