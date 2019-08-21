@@ -93,6 +93,29 @@ class PeekabooUtil(object):
                     print(result)
                 logger.info(result)
 
+    def shutdown(self):
+        """ Ask peekaboo to shut down and wait for it to terminate """
+        pid_regex = re.compile(r'Running as PID:(\d+)',
+                               re.MULTILINE + re.DOTALL + re.UNICODE)
+
+        buf = self.send_receive('[ { "graceful_shutdown": "" } ]', output=True)
+
+        for line in buf.splitlines():
+            output = pid_regex.search(line)
+            if output:
+                pid = int(output.group(1))
+                break
+        if not pid:
+            logger.error("Peekaboo didn't supply its PID. Exiting")
+            return
+
+        print("Waiting for Peekaboo to shutdown")
+        while psutil.pid_exists(pid):
+            print('.', end='')
+            time.sleep(1)
+        print(linesep)
+        print('Peekaboo (%d) terminated' % pid)
+
 
 def main():
     parser = ArgumentParser()
@@ -114,6 +137,10 @@ def main():
                                        'than once to scan multiple files.')
     scan_file_parser.set_defaults(func=command_scan_file)
 
+    graceful_shutdown = subparsers.add_parser('shutdown',
+                                              help='Graceful shutdown. Finish all analyses.')
+    graceful_shutdown.set_defaults(func=command_graceful_shutdown)
+
     args = parser.parse_args()
 
     logger.setLevel(logging.ERROR)
@@ -128,6 +155,11 @@ def command_scan_file(args):
     """ Handler for command scan_file """
     util = PeekabooUtil(args.socket_file)
     util.scan_file(args.filename)
+
+def command_graceful_shutdown(args):
+    """ Handler for command shutdown """
+    util = PeekabooUtil(args.socket_file)
+    util.shutdown()
 
 if __name__ == "__main__":
     main()

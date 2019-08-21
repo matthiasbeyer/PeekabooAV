@@ -29,9 +29,11 @@ import errno
 import json
 import logging
 import os
+import signal
 import stat
 import socket
 import socketserver
+import time
 from threading import Thread, Event, current_thread
 from peekaboo.ruleset import Result
 
@@ -153,6 +155,26 @@ class PeekabooStreamRequestHandler(socketserver.StreamRequestHandler):
         # here we know that all samples have reported back
         self.report(submitted)
 
+    def __initiate_shutdown__(self):
+        """ API initiated graceful shutdown """
+        logger.info('Initiating graceful shutdown')
+        # don't allow any new jobs
+        self.job_queue.maxsize = 0
+
+        self.talk_back('Running as PID:%d' % os.getpid())
+
+        # wait for job queue to empty
+        while not self.job_queue.jobs.empty():
+            self.talk_back(_('There are %d jobs in the queue' %
+                             self.job_queue.jobs.qsize()))
+            time.sleep(5)
+        self.talk_back(_('Queue empty'))
+
+        # initiate normal shutdown
+        os.kill(os.getpid(), signal.SIGTERM)
+        # advise initiator about
+        self.talk_back(_('Waiting for workers to finish'))
+
     def __submit_sample__(self, api_data):
         """ Submit API supplied file as Sample """
         path = api_data['full_name']
@@ -206,7 +228,9 @@ class PeekabooStreamRequestHandler(socketserver.StreamRequestHandler):
 
         submitted = []
         for part in parts:
-            if 'full_name' in part:
+            if 'graceful_shutdown' in part:
+                self.__initiate_shutdown__()
+            elif 'full_name' in part:
                 sample = self.__submit_sample__(part)
                 submitted.append(sample)
                 logger.debug('Created and submitted sample %s', sample)
