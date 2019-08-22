@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2019-09-09 11:18+0200\n"
+"POT-Creation-Date: 2019-10-18 17:44+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -45,39 +45,68 @@ msgstr ""
 msgid "Hello, this is Peekaboo."
 msgstr ""
 
+#: peekaboo/server.py:159
+msgid "Current Status of Peekaboo"
+msgstr ""
+
+#: peekaboo/server.py:161
+#, python-format
+msgid "Running as PID:%d"
+msgstr ""
+
+#: peekaboo/server.py:163
+#, python-format
+msgid "%d jobs in the queue"
+msgstr ""
+
+#: peekaboo/server.py:169
+#, python-format
+msgid "%d samples with local duplicates (%d samples waiting)"
+msgstr ""
+
 #: peekaboo/server.py:174
-msgid "Error: Invalid JSON in request."
+#, python-format
+msgid "%d cluster duplicates (%d samples waiting)"
 msgstr ""
 
-#: peekaboo/server.py:179
-msgid "ERROR: Invalid data structure."
+#: peekaboo/server.py:180
+#, python-format
+msgid "%d workers running"
 msgstr ""
 
-#: peekaboo/server.py:186
-msgid "ERROR: Incomplete data structure."
-msgstr ""
-
-#: peekaboo/server.py:193
+#: peekaboo/server.py:187
 msgid "ERROR: Path does not exist or no permission to access it."
 msgstr ""
 
-#: peekaboo/server.py:200
+#: peekaboo/server.py:194
 msgid "ERRROR: Input is not a file"
 msgstr ""
 
-#: peekaboo/server.py:207
+#: peekaboo/server.py:201
 msgid "Error submitting sample to job queue"
 msgstr ""
 
-#: peekaboo/server.py:239
+#: peekaboo/server.py:224
+msgid "Error: Invalid JSON in request."
+msgstr ""
+
+#: peekaboo/server.py:229
+msgid "ERROR: Invalid data structure."
+msgstr ""
+
+#: peekaboo/server.py:242
+msgid "ERROR: Incomplete data structure."
+msgstr ""
+
+#: peekaboo/server.py:270
 msgid "Files are being analyzed..."
 msgstr ""
 
-#: peekaboo/server.py:262
+#: peekaboo/server.py:293
 msgid "Peekaboo is shutting down."
 msgstr ""
 
-#: peekaboo/server.py:314
+#: peekaboo/server.py:345
 #, python-format
 msgid "The file collection has been categorized \"%s\""
 msgstr ""
@@ -205,14 +234,14 @@ msgstr ""
 
 #: peekaboo/ruleset/rules.py:544
 #, python-format
-msgid "The rule (%s) classified the sample as %s"
+msgid "A rule classified the sample as %s"
 msgstr ""
 
-#: peekaboo/ruleset/rules.py:550
+#: peekaboo/ruleset/rules.py:549
 msgid "No rule classified the sample in any way."
 msgstr ""
 
-#: peekaboo/ruleset/rules.py:562
+#: peekaboo/ruleset/rules.py:561
 msgid "File does not seem to exhibit recognizable malicious behaviour"
 msgstr ""
 

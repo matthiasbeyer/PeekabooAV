@@ -153,6 +153,32 @@ class PeekabooStreamRequestHandler(socketserver.StreamRequestHandler):
         # here we know that all samples have reported back
         self.report(submitted)
 
+    def __report_status__(self):
+        """ API initiated status report over socket """
+        logger.info('Presenting status')
+        self.talk_back(_('Current Status of Peekaboo'))
+        self.talk_back('===========================')
+        self.talk_back(_('Running as PID:%d') % os.getpid())
+        self.talk_back(_('%d jobs in the queue') %
+                       self.job_queue.jobs.qsize())
+
+        duplicate_count = 0
+        for key, value in self.job_queue.duplicates.iteritems():
+            duplicate_count += len(value['duplicates'])
+        self.talk_back(_('%d samples with local duplicates (%d samples waiting)') %
+                       (len(self.job_queue.duplicates), duplicate_count))
+        cluster_duplicate_count = 0
+        for key, value in self.job_queue.cluster_duplicates.iteritems():
+            duplicate_count += len(value['duplicates'])
+        self.talk_back(_('%d cluster duplicates (%d samples waiting)') %
+                       (len(self.job_queue.cluster_duplicates), cluster_duplicate_count))
+
+        running_workers = 0
+        for worker in self.job_queue.workers:
+            if worker.is_alive():
+                running_workers += 1
+        self.talk_back(_('%d workers running') % running_workers)
+
     def __submit_sample__(self, api_data):
         """ Submit API supplied file as Sample """
         path = api_data['full_name']
@@ -206,7 +232,9 @@ class PeekabooStreamRequestHandler(socketserver.StreamRequestHandler):
 
         submitted = []
         for part in parts:
-            if 'full_name' in part:
+            if 'status' in part:
+                self.__report_status__()
+            elif 'full_name' in part:
                 sample = self.__submit_sample__(part)
                 submitted.append(sample)
                 logger.debug('Created and submitted sample %s', sample)

@@ -92,6 +92,10 @@ class PeekabooUtil(object):
                     print(result)
                 logger.info(result)
 
+    def status(self):
+        """ Ask peekaboo for its status and output reply """
+        self.send_receive('[ { "status": "" } ]', output=True)
+
 
 def main():
     parser = ArgumentParser()
@@ -113,6 +117,10 @@ def main():
                                        'than once to scan multiple files.')
     scan_file_parser.set_defaults(func=command_scan_file)
 
+    status = subparsers.add_parser('status',
+                                   help='List status information.')
+    status.set_defaults(func=command_status)
+
     args = parser.parse_args()
 
     logger.setLevel(logging.ERROR)
@@ -127,6 +135,11 @@ def command_scan_file(args):
     """ Handler for command scan_file """
     util = PeekabooUtil(args.socket_file)
     util.scan_file(args.filename)
+
+def command_status(args):
+    """ Handler for command shutdown """
+    util = PeekabooUtil(args.socket_file)
+    util.status()
 
 if __name__ == "__main__":
     main()
