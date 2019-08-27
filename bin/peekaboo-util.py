@@ -40,7 +40,7 @@ import inspect
 currentdir = path.dirname(path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = path.dirname(currentdir)
 sys.path.insert(0,parentdir)
-#from peekaboo.* import anything
+from peekaboo.db import PeekabooDatabase
 
 
 logging.basicConfig()
@@ -93,6 +93,11 @@ class PeekabooUtil(object):
                     print(result)
                 logger.info(result)
 
+    def clean_db(self, url, seconds=None, result=None):
+        """ Remove entries from database older than seconds and with result result. """
+        peekaboodb = PeekabooDatabase(url)
+        peekaboodb.cleanup(seconds, result)
+        print('Database cleaned')
 
 def main():
     parser = ArgumentParser()
@@ -114,6 +119,16 @@ def main():
                                        'than once to scan multiple files.')
     scan_file_parser.set_defaults(func=command_scan_file)
 
+    clean_db = subparsers.add_parser('clean_db', help='Clean database from specified entries.'
+                                                      'Several options imply and')
+    clean_db.add_argument('-u', '--db-url', requered=True,
+                          help='URL to database.')
+    clean_db.add_argument('-s', '--seconds', required=False,
+                          help='Entries older than seconds will be removed.')
+    clean_db.add_argument('-r', '--result', required=False,
+                          help='Entries with result will be removed.')
+    clean_db.set_defaults(func=command_clean_db)
+
     args = parser.parse_args()
 
     logger.setLevel(logging.ERROR)
@@ -128,6 +143,11 @@ def command_scan_file(args):
     """ Handler for command scan_file """
     util = PeekabooUtil(args.socket_file)
     util.scan_file(args.filename)
+
+def command_clean_db(args):
+    """ Handler for command clean_db """
+    util = PeekabooUtil(args.socket_file)
+    util.clean_db(args.db-url, seconds=args.seconds, result=args.result)
 
 if __name__ == "__main__":
     main()

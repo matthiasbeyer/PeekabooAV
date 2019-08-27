@@ -28,7 +28,7 @@ SQLAlchemy. """
 import threading
 import logging
 from datetime import datetime, timedelta
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Enum
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Enum, and_
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.engine import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session, relationship
@@ -409,6 +409,32 @@ class PeekabooDatabase(object):
             session.close()
 
         return cleared > 0
+
+    def cleanup(self, seconds=60*60*24*14, result=Result.unknown):
+        with self.__lock:
+            session = self.__session()
+
+            # What about ? Result.ignored
+            pointintime = datetime.now() - timedelta(seconds=seconds)
+            query = session.query(SampleInfo, AnalysisJournal).filter(
+                        and_(
+                            SampleInfo.id == AnalysisJournal.sample_id,
+                            SampleInfo.result == result,
+                            AnalysisJournal.analyses_time <= pointintime
+                        )).group_by(SampleInfo.id)
+            for row in query.all():
+                session.query(AnalysisJournal).filter(
+                    AnalysisJournal.sample_id == row.AnalysisJournal.sample_id).delete()
+                session.query(SampleInfo).filter(
+                    SampleInfo.id == row.SampleInfo.id).delete()
+
+            try:
+                session.commit()
+            except SQLAlchemyError as error:
+                session.rollback()
+                raise PeekabooDatabaseError('Unable to clean the database: %s' % error)
+            finally:
+                session.close()
 
     def drop(self):
         """ Drop all tables of the database. """

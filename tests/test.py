@@ -489,6 +489,17 @@ class TestDatabase(CompatibleTestCase):
         # leave as found
         self.assertTrue(self.db_con.clear_stale_in_flight_samples())
 
+    def test_9_clean_db(self):
+        """ Test clean tables from entries Result.failed older than 0 seconds. """
+        self.db_con.analysis_save(self.sample)
+        self.db_con.cleanup(seconds=0, result=Result.failed)
+        self.assertIsNone(self.db_con.sample_info_fetch(self.sample))
+
+        self.db_con.analysis_save(self.sample)
+        self.db_con.analysis_save(self.sample)
+        self.db_con.analysis_save(self.sample)
+        self.db_con.cleanup(seconds=0, result=Result.failed)
+
     @classmethod
     def tearDownClass(cls):
         """ Clean up after the tests. """
