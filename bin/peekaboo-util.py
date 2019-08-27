@@ -32,19 +32,30 @@ from argparse import ArgumentParser
 import socket
 import re
 import logging
+import time
+import sys
+import inspect
+
+currentdir = path.dirname(path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = path.dirname(currentdir)
+sys.path.insert(0,parentdir)
+#from peekaboo.* import anything
+
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 
 
 class PeekabooUtil(object):
+    """ Utility fo interface with Peekaboo API over the socket connection """
     def __init__(self, socket_file):
         logger.debug('Initialising PeekabooUtil')
         self.peekaboo = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         logger.debug('Opening socket %s', socket_file)
         self.peekaboo.connect(socket_file)
 
-    def send_receive(self, request):
+    def send_receive(self, request, output=False):
+        """ Send request to peekaboo and return its answer """
         logger.debug('Sending request: %s', request)
 
         self.peekaboo.send(request)
@@ -55,12 +66,16 @@ class PeekabooUtil(object):
             data = self.peekaboo.recv(1024)
             if data:
                 buf += data
+                if output:
+                    print(data, end='')
             else:
                 self.peekaboo.close()
                 break
+        logger.debug('Received from peekaboo: %s', buf)
         return buf
 
     def scan_file(self, filename):
+        """ Scan the supplied filenames with peekaboo and output result """
         result_regex = re.compile(r'.*wurde als',
                                   re.MULTILINE + re.DOTALL + re.UNICODE)
         file_snippets = []
@@ -103,12 +118,13 @@ def main():
     logger.setLevel(logging.ERROR)
     if args.verbose:
         logger.setLevel(logging.INFO)
-    if args.verbose2:
+    if args.verbose2 or args.debug:
         logger.setLevel(logging.DEBUG)
 
     args.func(args)
 
 def command_scan_file(args):
+    """ Handler for command scan_file """
     util = PeekabooUtil(args.socket_file)
     util.scan_file(args.filename)
 
